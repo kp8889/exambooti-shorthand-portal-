@@ -1,50 +1,125 @@
+
 <!DOCTYPE html>
 <html lang="hi">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Exambooti - Online Test Portal</title>
+<title>EXAMBOOTI - Student Portal</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: #f3f5fa;
-  text-align: center;
-}
-header {
-  background: #172554;
-  color: white;
-  padding: 30px 15px;
-}
-h1 { margin: 0; font-size: 32px; }
-main {
-  max-width: 500px;
-  margin: 40px auto;
-  padding: 25px;
-  background: white;
-  border-radius: 15px;
-}
-button {
-  background: #2563eb;
-  color: white;
-  border: 0;
-  padding: 14px 25px;
-  border-radius: 8px;
-  font-size: 17px;
-}
+body{font-family:Arial,sans-serif;background:#f1f5f9;margin:0;padding:20px}
+.card{max-width:420px;margin:35px auto;background:white;padding:24px;border-radius:14px;box-shadow:0 3px 15px #0002}
+h1{text-align:center;color:#173b70}
+input,button{width:100%;padding:13px;margin:9px 0;box-sizing:border-box;border-radius:7px;font-size:16px}
+input{border:1px solid #bbb}
+button{background:#173b70;color:white;border:0;font-weight:bold}
+#msg{white-space:pre-wrap;color:#b42318;font-size:14px}
+.small{font-size:13px;color:#555}
 </style>
 </head>
 <body>
-<header>
-  <h1>EXAMBOOTI</h1>
-  <p>Shorthand & English Typing Test Portal</p>
-</header>
-<main>
-  <h2>Welcome to Exambooti</h2>
-  <p>आपके ऑनलाइन टेस्ट की तैयारी का नया प्लेटफॉर्म।</p>
-  <p>Shorthand Dictation | English Typing</p>
-  <button>Student Login</button>
-  <p>Online Examination Portal</p>
-</main>
+<div class="card">
+<h1>EXAMBOOTI</h1>
+<p style="text-align:center">Shorthand & English Typing Test Portal</p>
+
+<div id="setup">
+<h3>First Time Setup</h3>
+<input id="project" placeholder="Supabase Project URL">
+<input id="key" placeholder="Supabase Publishable Key">
+<button onclick="connect()">CONNECT</button>
+</div>
+
+<div id="login" style="display:none">
+<h3>Student / Admin Login</h3>
+<input id="email" type="email" placeholder="Email ID">
+<input id="password" type="password" placeholder="Password">
+<button onclick="login()">LOGIN</button>
+<button onclick="changeSetup()" style="background:#555">Change Project URL / Key</button>
+</div>
+
+<div id="home" style="display:none">
+<h3 id="welcome"></h3>
+<p id="role"></p>
+<button onclick="logout()">LOGOUT</button>
+</div>
+
+<p id="msg"></p>
+<p class="small">Exambooti Online Examination System</p>
+</div>
+
+<script>
+let sb=null;
+
+function message(t){
+ document.getElementById("msg").textContent=t;
+}
+
+async function connect(){
+ try{
+  const url=document.getElementById("project").value.trim().replace(/\/$/,"");
+  const key=document.getElementById("key").value.trim();
+  if(!url || !key){message("Project URL और Publishable Key दोनों भरें।");return;}
+  if(url.endsWith("/rest/v1")){message("गलत URL है। Project URL में /rest/v1 नहीं होना चाहिए।");return;}
+  sb=window.supabase.createClient(url,key);
+  const {error}=await sb.auth.getSession();
+  if(error) throw error;
+  localStorage.setItem("exambooti_url",url);
+  localStorage.setItem("exambooti_key",key);
+  document.getElementById("setup").style.display="none";
+  document.getElementById("login").style.display="block";
+  message("Connection successful. अब Login करें।");
+ }catch(e){message("Connection error: "+e.message);}
+}
+
+async function login(){
+ try{
+  if(!sb) await loadSaved();
+  const email=document.getElementById("email").value.trim();
+  const password=document.getElementById("password").value;
+  if(!email || !password){message("Email और Password भरें।");return;}
+  const {data,error}=await sb.auth.signInWithPassword({email,password});
+  if(error) throw error;
+  const {data:profile,error:pError}=await sb.from("profiles").select("full_name,role").eq("id",data.user.id).single();
+  if(pError) throw pError;
+  document.getElementById("login").style.display="none";
+  document.getElementById("home").style.display="block";
+  document.getElementById("welcome").textContent="Welcome, "+(profile.full_name||"User");
+  document.getElementById("role").textContent="Your role: "+profile.role;
+  message("Login successful.");
+ }catch(e){message("Login error: "+e.message);}
+}
+
+async function loadSaved(){
+ const url=localStorage.getItem("exambooti_url");
+ const key=localStorage.getItem("exambooti_key");
+ if(!url || !key) throw new Error("पहले Project URL और Key से Connect करें।");
+ sb=window.supabase.createClient(url,key);
+}
+
+async function logout(){
+ if(sb) await sb.auth.signOut();
+ document.getElementById("home").style.display="none";
+ document.getElementById("login").style.display="block";
+ message("आप Logout हो गए हैं।");
+}
+
+function changeSetup(){
+ localStorage.removeItem("exambooti_url");
+ localStorage.removeItem("exambooti_key");
+ location.reload();
+}
+
+window.addEventListener("load",async()=>{
+ const url=localStorage.getItem("exambooti_url");
+ const key=localStorage.getItem("exambooti_key");
+ if(url && key){
+  document.getElementById("project").value=url;
+  document.getElementById("key").value=key;
+  await loadSaved();
+  document.getElementById("setup").style.display="none";
+  document.getElementById("login").style.display="block";
+ }
+});
+</script>
 </body>
 </html>

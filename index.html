@@ -1,3 +1,246 @@
 
+<!doctype html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>EXAMBOOTI Portal</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f2f5fa;font-family:Arial;color:#172033}
+header{background:#173b70;color:white;text-align:center;padding:20px}
+main{max-width:720px;margin:20px auto;padding:0 12px}
+.card{background:white;padding:20px;margin:14px 0;border-radius:12px;box-shadow:0 3px 14px #0001}
+h2{color:#173b70;margin-top:0}
+label{display:block;font-weight:bold;margin:12px 0 5px}
+input{width:100%;padding:12px;border:1px solid #cbd5e1;border-radius:7px;font-size:16px}
+button{background:#173b70;color:white;border:0;border-radius:7px;padding:12px 16px;margin-top:14px;font-size:15px;font-weight:bold}
+button.secondary{background:#64748b}
+.hidden{display:none!important}
+.muted{color:#64748b;font-size:13px;line-height:1.5}
+#status{white-space:pre-wrap;color:#a12626}
+#status.ok{color:#147d42}
+table{width:100%;border-collapse:collapse}
+td,th{text-align:left;padding:9px;border-bottom:1px solid #ddd}
+</style>
+</head>
+<body>
+<header>
+<h1>EXAMBOOTI</h1>
+<p>Shorthand & English Typing Examination Portal</p>
+</header>
+<main>
+<section class="card" id="setup">
+<h2>पहली बार सेटअप</h2>
+<p class="muted">Supabase Project URL और Publishable Key डालें। Secret Key कभी न डालें।</p>
+<label>Project URL</label>
+<input id="url" placeholder="https://xxxx.supabase.co">
+<label>Publishable Key</label>
+<input id="key" placeholder="sb_publishable_...">
+<button id="connect">Connect</button>
+</section>
 
-$('create').onclick=async()=>{try{let sid=$('sid').value.trim().toUpperCase(),name=$('sname').value.trim(),pw=$('spass').value;if(!sid||!name||!pw)throw Error('तीनों बॉक्स भरें।');if(pw.length<8)throw Error('Password कम से कम 8 अक्षर का रखें।');let {data:{session}}=await sb.auth.getSession();if(!session)throw Error('Admin login दोबारा करें।');let {data,error}=await sb.functions.invoke('clever-processor',{body:{student_id:sid,full_name:name,password:pw},headers:{Authorization:'Bearer '+session.access_token}});if(error){let d=error.message;if(error.context){try{let b=await error.context.json();d+=' | '+(b.error||JSON.stringify(b))}catch(_){}}throw Error(d)}if(data?.error)throw Error(data.error);msg('Student account बन गया: '+sid,true);$('sid').value='';$('sname').value='';$('spass').value='';await refreshList()}catch(e){msg('Student create error: '+e.message)}};
+<section class="card hidden" id="login">
+<h2>Login</h2>
+<label>Student ID या Admin Email</label>
+<input id="identity" placeholder="ID / Email">
+<label>Password</label>
+<input id="password" type="password">
+<button id="signin">Login</button>
+<button class="secondary" id="change">Change Setup</button>
+</section>
+
+<section class="card hidden" id="admin">
+<h2>Admin Dashboard</h2>
+<button class="secondary" id="logoutA">Logout</button>
+<h3>नया Student बनाइए</h3>
+<label>Student ID</label>
+<input id="sid" placeholder="EXB001">
+<label>Student Name</label>
+<input id="sname" placeholder="पूरा नाम">
+<label>Temporary Password</label>
+<input id="spass" type="password" placeholder="कम से कम 8 अक्षर">
+<button id="create">Create Student Account</button>
+<h3>Students List</h3>
+<button class="secondary" id="refresh">Refresh List</button>
+<div id="list"></div>
+</section>
+
+<section class="card hidden" id="student">
+<h2>Student Dashboard</h2>
+<p id="welcome"></p>
+<p class="muted">आपका Login सफल है। Tests और Results अगले चरण में जोड़े जाएँगे।</p>
+<button class="secondary" id="logoutS">Logout</button>
+</section>
+
+<p id="status"></p>
+</main>
+
+<script>
+(()=>{
+const $=x=>document.getElementById(x);
+let sb=null;
+
+const show=(x,v)=>$(x).classList.toggle('hidden',!v);
+const msg=(s,ok=false)=>{
+$('status').textContent=s;
+$('status').className=ok?'ok':'';
+};
+
+function load(){
+let u=localStorage.getItem('exb_url');
+let k=localStorage.getItem('exb_key');
+if(!u||!k)return false;
+sb=window.supabase.createClient(u,k);
+return true;
+}
+
+function emailFor(v){
+v=v.trim();
+return v.includes('@')?v:
+v.toLowerCase().replace(/[^a-z0-9_-]/g,'')+'@students.exambooti.com';
+}
+
+$('connect').onclick=async()=>{
+try{
+let u=$('url').value.trim().replace(/\/$/,'');
+let k=$('key').value.trim();
+if(!u||!k)throw Error('Project URL और Publishable Key भरें।');
+if(!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(u))
+throw Error('Project URL गलत है।');
+
+sb=window.supabase.createClient(u,k);
+let {error}=await sb.auth.getSession();
+if(error)throw error;
+
+localStorage.setItem('exb_url',u);
+localStorage.setItem('exb_key',k);
+show('setup',false);
+show('login',true);
+msg('Connection successful. अब Login करें।',true);
+}catch(e){
+msg('Connection error: '+e.message);
+}
+};
+
+$('change').onclick=()=>{
+localStorage.removeItem('exb_url');
+localStorage.removeItem('exb_key');
+location.reload();
+};
+
+$('signin').onclick=async()=>{
+try{
+if(!sb&&!load())throw Error('पहले Setup करें।');
+let id=$('identity').value.trim();
+let pw=$('password').value;
+if(!id||!pw)throw Error('ID/Email और Password भरें।');
+
+let {data,error}=await sb.auth.signInWithPassword({
+email:emailFor(id),
+password:pw
+});
+if(error)throw error;
+
+let {data:p,error:pe}=await sb.from('profiles')
+.select('full_name,role,student_id')
+.eq('id',data.user.id).single();
+if(pe)throw pe;
+
+show('login',false);
+if(p.role==='admin'){
+show('admin',true);
+await refreshList();
+}else{
+show('student',true);
+$('welcome').textContent='नमस्ते, '+(p.full_name||p.student_id||'Student');
+}
+msg('Login successful.',true);
+}catch(e){
+msg('Login error: '+e.message);
+}
+};
+
+async function refreshList(){
+try{
+let {data,error}=await sb.from('profiles')
+.select('student_id,full_name')
+.eq('role','student')
+.order('created_at',{ascending:false});
+if(error)throw error;
+if(!data.length){
+$('list').textContent='अभी कोई Student नहीं बना है।';
+return;
+}
+let esc=s=>String(s||'').replace(/[&<>"']/g,c=>({
+'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+}[c]));
+$('list').innerHTML='<table><tr><th>Student ID</th><th>Name</th></tr>'+
+data.map(x=>'<tr><td>'+esc(x.student_id)+'</td><td>'+esc(x.full_name)+'</td></tr>').join('')+
+'</table>';
+}catch(e){
+$('list').textContent='List error: '+e.message;
+}
+}
+
+$('create').onclick=async()=>{
+try{
+let sid=$('sid').value.trim().toUpperCase();
+let name=$('sname').value.trim();
+let pw=$('spass').value;
+
+if(!sid||!name||!pw)throw Error('तीनों बॉक्स भरें।');
+if(pw.length<8)throw Error('Password कम से कम 8 अक्षर का रखें।');
+
+let {data:{session}}=await sb.auth.getSession();
+if(!session)throw Error('Admin login दोबारा करें।');
+
+let {data,error}=await sb.functions.invoke('clever-processor',{
+body:{student_id:sid,full_name:name,password:pw},
+headers:{Authorization:'Bearer '+session.access_token}
+});
+
+if(error){
+let detail=error.message;
+if(error.context){
+try{
+let b=await error.context.json();
+detail+=' | '+(b.error||JSON.stringify(b));
+}catch(_){}
+}
+throw Error(detail);
+}
+if(data?.error)throw Error(data.error);
+
+msg('Student account बन गया: '+sid,true);
+$('sid').value='';
+$('sname').value='';
+$('spass').value='';
+await refreshList();
+
+}catch(e){
+msg('Student create error: '+e.message);
+}
+};
+
+async function logout(){
+await sb.auth.signOut();
+show('admin',false);
+show('student',false);
+show('login',true);
+msg('Logout हो गया।',true);
+}
+
+$('refresh').onclick=refreshList;
+$('logoutA').onclick=logout;
+$('logoutS').onclick=logout;
+
+if(load()){
+show('setup',false);
+show('login',true);
+}
+})();
+</script>
+</body>
+</html>

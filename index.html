@@ -10,11 +10,12 @@
 *{box-sizing:border-box}
 body{margin:0;background:#f2f5fa;font-family:Arial;color:#172033}
 header{background:#173b70;color:white;text-align:center;padding:20px}
-main{max-width:720px;margin:20px auto;padding:0 12px}
+main{max-width:760px;margin:20px auto;padding:0 12px}
 .card{background:white;padding:20px;margin:14px 0;border-radius:12px;box-shadow:0 3px 14px #0001}
 h2{color:#173b70;margin-top:0}
 label{display:block;font-weight:bold;margin:12px 0 5px}
-input{width:100%;padding:12px;border:1px solid #cbd5e1;border-radius:7px;font-size:16px}
+input,select,textarea{width:100%;padding:12px;border:1px solid #cbd5e1;border-radius:7px;font-size:16px;font-family:Arial}
+textarea{min-height:180px;resize:vertical}
 button{background:#173b70;color:white;border:0;border-radius:7px;padding:12px 16px;margin-top:14px;font-size:15px;font-weight:bold}
 button.secondary{background:#64748b}
 .hidden{display:none!important}
@@ -23,6 +24,9 @@ button.secondary{background:#64748b}
 #status.ok{color:#147d42}
 table{width:100%;border-collapse:collapse}
 td,th{text-align:left;padding:9px;border-bottom:1px solid #ddd}
+.test{border:1px solid #dbe3ef;border-radius:9px;padding:14px;margin:12px 0}
+.test h3{margin:0 0 8px;color:#173b70}
+.tag{display:inline-block;background:#e8eef8;padding:5px 9px;border-radius:5px;margin:4px 4px 4px 0;font-size:12px}
 </style>
 </head>
 <body>
@@ -31,6 +35,7 @@ td,th{text-align:left;padding:9px;border-bottom:1px solid #ddd}
 <p>Shorthand & English Typing Examination Portal</p>
 </header>
 <main>
+
 <section class="card" id="setup">
 <h2>पहली बार सेटअप</h2>
 <p class="muted">Supabase Project URL और Publishable Key डालें। Secret Key कभी न डालें।</p>
@@ -54,6 +59,7 @@ td,th{text-align:left;padding:9px;border-bottom:1px solid #ddd}
 <section class="card hidden" id="admin">
 <h2>Admin Dashboard</h2>
 <button class="secondary" id="logoutA">Logout</button>
+
 <h3>नया Student बनाइए</h3>
 <label>Student ID</label>
 <input id="sid" placeholder="EXB001">
@@ -62,6 +68,38 @@ td,th{text-align:left;padding:9px;border-bottom:1px solid #ddd}
 <label>Temporary Password</label>
 <input id="spass" type="password" placeholder="कम से कम 8 अक्षर">
 <button id="create">Create Student Account</button>
+
+<hr style="margin:25px 0;border:0;border-top:1px solid #ddd">
+
+<h2>Create Shorthand Test</h2>
+<label>Test का नाम</label>
+<input id="testTitle" placeholder="जैसे: Dictation Test 001">
+
+<label>Dictation के शब्द</label>
+<select id="wordCount">
+<option value="400">400 Words</option>
+<option value="800">800 Words</option>
+</select>
+
+<label>Test का समय</label>
+<select id="duration">
+<option value="20">20 Minutes</option>
+<option value="25">25 Minutes</option>
+</select>
+
+<label>Original Dictation Matter</label>
+<textarea id="matter" placeholder="यहाँ पूरा English dictation matter पेस्ट करें..."></textarea>
+<p class="muted">यह Original Matter केवल Teacher के पास सुरक्षित रहेगा। विद्यार्थी इसे नहीं देख पाएँगे।</p>
+<button id="saveTest">Save & Publish Test</button>
+
+<hr style="margin:25px 0;border:0;border-top:1px solid #ddd">
+
+<h3>आपके Shorthand Tests</h3>
+<button class="secondary" id="refreshTests">Refresh Tests</button>
+<div id="adminTests"></div>
+
+<hr style="margin:25px 0;border:0;border-top:1px solid #ddd">
+
 <h3>Students List</h3>
 <button class="secondary" id="refresh">Refresh List</button>
 <div id="list"></div>
@@ -70,8 +108,10 @@ td,th{text-align:left;padding:9px;border-bottom:1px solid #ddd}
 <section class="card hidden" id="student">
 <h2>Student Dashboard</h2>
 <p id="welcome"></p>
-<p class="muted">आपका Login सफल है। Tests और Results अगले चरण में जोड़े जाएँगे।</p>
 <button class="secondary" id="logoutS">Logout</button>
+<h3>Available Shorthand Tests</h3>
+<div id="studentTests"></div>
+<p class="muted">आपके टेस्ट और रिजल्ट की सुविधाएँ अगले चरण में जोड़ी जाएँगी।</p>
 </section>
 
 <p id="status"></p>
@@ -81,6 +121,7 @@ td,th{text-align:left;padding:9px;border-bottom:1px solid #ddd}
 (()=>{
 const $=x=>document.getElementById(x);
 let sb=null;
+let currentUser=null;
 
 const show=(x,v)=>$(x).classList.toggle('hidden',!v);
 const msg=(s,ok=false)=>{
@@ -102,6 +143,12 @@ return v.includes('@')?v:
 v.toLowerCase().replace(/[^a-z0-9_-]/g,'')+'@students.exambooti.com';
 }
 
+function esc(s){
+return String(s||'').replace(/[&<>"']/g,c=>({
+'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+}[c]));
+}
+
 $('connect').onclick=async()=>{
 try{
 let u=$('url').value.trim().replace(/\/$/,'');
@@ -119,9 +166,7 @@ localStorage.setItem('exb_key',k);
 show('setup',false);
 show('login',true);
 msg('Connection successful. अब Login करें।',true);
-}catch(e){
-msg('Connection error: '+e.message);
-}
+}catch(e){msg('Connection error: '+e.message);}
 };
 
 $('change').onclick=()=>{
@@ -138,11 +183,11 @@ let pw=$('password').value;
 if(!id||!pw)throw Error('ID/Email और Password भरें।');
 
 let {data,error}=await sb.auth.signInWithPassword({
-email:emailFor(id),
-password:pw
+email:emailFor(id),password:pw
 });
 if(error)throw error;
 
+currentUser=data.user;
 let {data:p,error:pe}=await sb.from('profiles')
 .select('full_name,role,student_id')
 .eq('id',data.user.id).single();
@@ -152,14 +197,14 @@ show('login',false);
 if(p.role==='admin'){
 show('admin',true);
 await refreshList();
+await refreshAdminTests();
 }else{
 show('student',true);
 $('welcome').textContent='नमस्ते, '+(p.full_name||p.student_id||'Student');
+await refreshStudentTests();
 }
 msg('Login successful.',true);
-}catch(e){
-msg('Login error: '+e.message);
-}
+}catch(e){msg('Login error: '+e.message);}
 };
 
 async function refreshList(){
@@ -173,15 +218,10 @@ if(!data.length){
 $('list').textContent='अभी कोई Student नहीं बना है।';
 return;
 }
-let esc=s=>String(s||'').replace(/[&<>"']/g,c=>({
-'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-}[c]));
 $('list').innerHTML='<table><tr><th>Student ID</th><th>Name</th></tr>'+
 data.map(x=>'<tr><td>'+esc(x.student_id)+'</td><td>'+esc(x.full_name)+'</td></tr>').join('')+
 '</table>';
-}catch(e){
-$('list').textContent='List error: '+e.message;
-}
+}catch(e){$('list').textContent='List error: '+e.message;}
 }
 
 $('create').onclick=async()=>{
@@ -189,7 +229,6 @@ try{
 let sid=$('sid').value.trim().toUpperCase();
 let name=$('sname').value.trim();
 let pw=$('spass').value;
-
 if(!sid||!name||!pw)throw Error('तीनों बॉक्स भरें।');
 if(pw.length<8)throw Error('Password कम से कम 8 अक्षर का रखें।');
 
@@ -214,18 +253,106 @@ throw Error(detail);
 if(data?.error)throw Error(data.error);
 
 msg('Student account बन गया: '+sid,true);
-$('sid').value='';
-$('sname').value='';
-$('spass').value='';
+$('sid').value='';$('sname').value='';$('spass').value='';
 await refreshList();
-
-}catch(e){
-msg('Student create error: '+e.message);
-}
+}catch(e){msg('Student create error: '+e.message);}
 };
+
+$('saveTest').onclick=async()=>{
+try{
+let title=$('testTitle').value.trim();
+let words=Number($('wordCount').value);
+let duration=Number($('duration').value);
+let matter=$('matter').value.trim();
+
+if(!title||!matter)throw Error('Test का नाम और Original Matter भरें।');
+if(words===400 && ![20,25].includes(duration))
+throw Error('400 शब्दों के लिए 20 या 25 मिनट चुनें।');
+if(words===800 && ![40,50].includes(duration))
+throw Error('800 शब्दों के लिए 40 या 50 मिनट चुनें।');
+
+let count=matter.split(/\s+/).filter(Boolean).length;
+if(count!==words){
+throw Error('Matter में '+count+' शब्द हैं। आपने '+words+' शब्द चुने हैं। कृपया सही Matter डालें।');
+}
+
+let {data:{session}}=await sb.auth.getSession();
+if(!session)throw Error('कृपया दोबारा Login करें।');
+
+let {data:test,error}=await sb.from('dictation_tests').insert({
+title:title,
+word_count:words,
+duration_minutes:duration,
+is_published:false,
+created_by:session.user.id
+}).select('id').single();
+
+if(error)throw error;
+
+let {error:keyError}=await sb.from('dictation_keys').insert({
+test_id:test.id,
+reference_matter:matter
+});
+
+if(keyError){
+await sb.from('dictation_tests').delete().eq('id',test.id);
+throw keyError;
+}
+
+let {error:publishError}=await sb.from('dictation_tests')
+.update({is_published:true}).eq('id',test.id);
+
+if(publishError)throw publishError;
+
+msg('Test सफलतापूर्वक Save और Publish हो गया!',true);
+$('testTitle').value='';
+$('matter').value='';
+await refreshAdminTests();
+}catch(e){msg('Test create error: '+e.message);}
+};
+
+async function refreshAdminTests(){
+try{
+let {data,error}=await sb.from('dictation_tests')
+.select('id,title,word_count,duration_minutes,is_published,created_at')
+.order('created_at',{ascending:false});
+if(error)throw error;
+if(!data.length){
+$('adminTests').textContent='अभी कोई Test नहीं बनाया गया है।';
+return;
+}
+$('adminTests').innerHTML=data.map(t=>
+'<div class="test"><h3>'+esc(t.title)+'</h3>'+
+'<span class="tag">'+t.word_count+' Words</span>'+
+'<span class="tag">'+t.duration_minutes+' Minutes</span>'+
+'<span class="tag">'+(t.is_published?'Published':'Draft')+'</span></div>'
+).join('');
+}catch(e){$('adminTests').textContent='Test list error: '+e.message;}
+}
+
+async function refreshStudentTests(){
+try{
+let {data,error}=await sb.from('dictation_tests')
+.select('id,title,word_count,duration_minutes,created_at')
+.eq('is_published',true)
+.order('created_at',{ascending:false});
+if(error)throw error;
+if(!data.length){
+$('studentTests').textContent='अभी कोई Test उपलब्ध नहीं है।';
+return;
+}
+$('studentTests').innerHTML=data.map(t=>
+'<div class="test"><h3>'+esc(t.title)+'</h3>'+
+'<span class="tag">'+t.word_count+' Words</span>'+
+'<span class="tag">'+t.duration_minutes+' Minutes</span>'+
+'<p class="muted">Test प्रकाशित है। परीक्षा देने की सुविधा अगले चरण में जोड़ी जाएगी।</p></div>'
+).join('');
+}catch(e){$('studentTests').textContent='Tests load error: '+e.message;}
+}
 
 async function logout(){
 await sb.auth.signOut();
+currentUser=null;
 show('admin',false);
 show('student',false);
 show('login',true);
@@ -233,6 +360,7 @@ msg('Logout हो गया।',true);
 }
 
 $('refresh').onclick=refreshList;
+$('refreshTests').onclick=refreshAdminTests;
 $('logoutA').onclick=logout;
 $('logoutS').onclick=logout;
 

@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="hi">
 <head>
@@ -7,425 +6,98 @@
 <title>EXAMBOOTI Portal</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-*{box-sizing:border-box}
-body{margin:0;background:#f2f5fa;font-family:Arial;color:#172033}
-header{background:#173b70;color:white;text-align:center;padding:20px}
-main{max-width:760px;margin:20px auto;padding:0 12px}
+*{box-sizing:border-box}body{margin:0;background:#f2f5fa;font-family:Arial;color:#172033}
+header{background:#173b70;color:white;text-align:center;padding:20px}main{max-width:850px;margin:20px auto;padding:0 12px}
 .card{background:white;padding:20px;margin:14px 0;border-radius:12px;box-shadow:0 3px 14px #0001}
-h2{color:#173b70;margin-top:0}
-label{display:block;font-weight:bold;margin:12px 0 5px}
+h2{color:#173b70;margin-top:0}label{display:block;font-weight:bold;margin:12px 0 5px}
 input,select,textarea{width:100%;padding:12px;border:1px solid #cbd5e1;border-radius:7px;font-size:16px;font-family:Arial}
-textarea{min-height:150px;resize:vertical}
-button{background:#173b70;color:white;border:0;border-radius:7px;padding:12px 16px;margin-top:14px;font-size:15px;font-weight:bold}
-.secondary{background:#64748b}
-.hidden{display:none!important}
-.muted{color:#64748b;font-size:13px;line-height:1.5}
-#status{white-space:pre-wrap;color:#a12626}
-#status.ok{color:#147d42}
-.test{border:1px solid #dbe3ef;border-radius:9px;padding:14px;margin:12px 0}
+textarea{min-height:150px;resize:vertical}button{background:#173b70;color:white;border:0;border-radius:7px;padding:12px 16px;margin:8px 6px 0 0;font-size:15px;font-weight:bold;cursor:pointer}
+.secondary{background:#64748b}.hidden{display:none!important}.muted{color:#64748b;font-size:13px;line-height:1.5}
+#status{white-space:pre-wrap;color:#a12626}#status.ok{color:#147d42}.test{border:1px solid #dbe3ef;border-radius:9px;padding:14px;margin:12px 0}
 .tag{display:inline-block;background:#e8eef8;padding:5px 9px;border-radius:5px;margin:4px;font-size:12px}
-hr{margin:25px 0;border:0;border-top:1px solid #ddd}
-table{width:100%;border-collapse:collapse}
-td,th{text-align:left;padding:9px;border-bottom:1px solid #ddd}
+hr{margin:25px 0;border:0;border-top:1px solid #ddd}table{width:100%;border-collapse:collapse}td,th{text-align:left;padding:9px;border-bottom:1px solid #ddd}
+#typingAnswer{min-height:220px;font-size:17px;line-height:1.6}#clock{font-size:26px;font-weight:bold;color:#a12626}
 </style>
 </head>
 <body>
-
-<header>
-<h1>EXAMBOOTI</h1>
-<p>Shorthand & English Typing Examination Portal</p>
-</header>
-
+<header><h1>EXAMBOOTI</h1><p>Shorthand & English Typing Examination Portal</p></header>
 <main>
-
 <section class="card" id="setup">
-<h2>पहली बार सेटअप</h2>
-<p class="muted">Supabase Project URL और Publishable Key डालें। Secret Key कभी न डालें।</p>
-<label>Project URL</label>
-<input id="url" placeholder="https://xxxx.supabase.co">
-<label>Publishable Key</label>
-<input id="key" placeholder="sb_publishable_...">
-<button id="connect">Connect</button>
+<h2>पहली बार सेटअप</h2><p class="muted">Supabase Project URL और Publishable Key डालें। Secret Key कभी न डालें।</p>
+<label>Project URL</label><input id="url" placeholder="https://xxxx.supabase.co">
+<label>Publishable Key</label><input id="key" placeholder="sb_publishable_..."><button id="connect">Connect</button>
 </section>
-
-<section class="card hidden" id="login">
-<h2>Login</h2>
-<label>Student ID या Admin Email</label>
-<input id="identity" placeholder="ID / Email">
-<label>Password</label>
-<input id="password" type="password">
-<button id="signin">Login</button>
-<button class="secondary" id="change">Change Setup</button>
+<section class="card hidden" id="login"><h2>Login</h2>
+<label>Student ID या Admin Email</label><input id="identity" placeholder="ID / Email">
+<label>Password</label><input id="password" type="password"><button id="signin">Login</button><button class="secondary" id="change">Change Setup</button>
 </section>
-
 <section class="card hidden" id="admin">
-<h2>Admin Dashboard</h2>
-<button class="secondary" id="logoutA">Logout</button>
-
-<hr>
-<h2>नया Student बनाइए</h2>
-<label>Student ID</label>
-<input id="sid" placeholder="EXB001">
-<label>Student Name</label>
-<input id="sname" placeholder="पूरा नाम">
-<label>Temporary Password</label>
-<input id="spass" type="password" placeholder="कम से कम 8 अक्षर">
-<button id="create">Create Student Account</button>
-<div id="list"></div>
-
-<hr>
-<h2>Shorthand Dictation Test</h2>
-<label>Test का नाम</label>
-<input id="shTitle" placeholder="Dictation Test 001">
-<label>Dictation के शब्द</label>
-<select id="shWords">
-<option value="400">400 Words</option>
-<option value="800">800 Words</option>
-</select>
-<label>Test का समय</label>
-<select id="shDuration">
-<option value="20">20 Minutes</option>
-<option value="25">25 Minutes</option>
-</select>
-<label>Original Dictation Matter</label>
-<textarea id="shMatter" placeholder="यहाँ English dictation matter पेस्ट करें"></textarea>
-<p class="muted">Original Matter विद्यार्थियों से छिपा रहेगा।</p>
-<button id="saveSh">Save & Publish Shorthand Test</button>
-<div id="adminShTests"></div>
-
-<hr>
-<h2>English Typing Test</h2>
-<label>Typing Test का नाम</label>
-<input id="tyTitle" placeholder="Typing Test 001">
-<label>Passage की शब्द संख्या</label>
-<select id="tyWords">
-<option value="300">300 Words</option>
-<option value="400">400 Words</option>
-<option value="500">500 Words</option>
-<option value="800">800 Words</option>
-</select>
-<label>Typing Test का समय</label>
-<select id="tyDuration">
-<option value="5">5 Minutes</option>
-<option value="10">10 Minutes</option>
-<option value="15">15 Minutes</option>
-</select>
-<label>English Typing Passage</label>
-<textarea id="tyPassage" placeholder="यहाँ English typing passage पेस्ट करें"></textarea>
-<button id="saveTy">Save & Publish Typing Test</button>
-<div id="adminTyTests"></div>
-
+<h2>Admin Dashboard</h2><button class="secondary" id="logoutA">Logout</button><hr>
+<h2>नया Student बनाइए</h2><label>Student ID</label><input id="sid" placeholder="EXB001">
+<label>Student Name</label><input id="sname" placeholder="पूरा नाम">
+<label>Temporary Password</label><input id="spass" type="password" placeholder="कम से कम 8 अक्षर">
+<button id="create">Create Student Account</button><div id="list"></div><hr>
+<h2>Shorthand Dictation Test</h2><label>Test का नाम</label><input id="shTitle" placeholder="Dictation Test 001">
+<label>Dictation के शब्द</label><select id="shWords"><option value="400">400 Words</option><option value="800">800 Words</option></select>
+<label>Test का समय</label><select id="shDuration"><option value="20">20 Minutes</option><option value="25">25 Minutes</option></select>
+<label>Original Dictation Matter</label><textarea id="shMatter" placeholder="यहाँ English dictation matter पेस्ट करें"></textarea>
+<p class="muted">Original Matter विद्यार्थियों से छिपा रहेगा।</p><button id="saveSh">Save & Publish Shorthand Test</button><div id="adminShTests"></div><hr>
+<h2>English Typing Test</h2><label>Typing Test का नाम</label><input id="tyTitle" placeholder="Typing Test 001">
+<label>Passage की शब्द संख्या</label><select id="tyWords"><option value="300">300 Words</option><option value="400">400 Words</option><option value="500">500 Words</option><option value="800">800 Words</option></select>
+<label>Typing Test का समय</label><select id="tyDuration"><option value="5">5 Minutes</option><option value="10">10 Minutes</option><option value="15">15 Minutes</option></select>
+<label>English Typing Passage</label><textarea id="tyPassage" placeholder="यहाँ English typing passage पेस्ट करें"></textarea>
+<button id="saveTy">Save & Publish Typing Test</button><div id="adminTyTests"></div>
+<hr><h2>Typing Test Results</h2><button id="refreshResults" class="secondary">Refresh Results</button><div id="adminResults"></div>
 </section>
-
 <section class="card hidden" id="student">
-<h2>Student Dashboard</h2>
-<p id="welcome"></p>
-<button class="secondary" id="logoutS">Logout</button>
-
-<hr>
-<h3>Shorthand Dictation Tests</h3>
-<div id="studentShTests"></div>
-
-<hr>
-<h3>English Typing Tests</h3>
-<div id="studentTyTests"></div>
-
-<p class="muted">Test देने, Timer और Automatic Result अगले चरण में जोड़े जाएँगे।</p>
+<h2>Student Dashboard</h2><p id="welcome"></p><button class="secondary" id="logoutS">Logout</button>
+<hr><h3>Shorthand Dictation Tests</h3><div id="studentShTests"></div>
+<hr><h3>English Typing Tests</h3><div id="studentTyTests"></div>
+<hr><h3>मेरे Typing Results</h3><div id="studentResults"></div>
 </section>
-
+<section class="card hidden" id="typingScreen">
+<h2 id="typingTitle">English Typing Test</h2><p id="typingMeta" class="muted"></p>
+<div id="clock">00:00</div><p class="muted">नीचे दिए गए passage को देखकर उसी तरह टाइप करें। समय पूरा होने पर टेस्ट अपने आप जमा हो जाएगा।</p>
+<div id="sourcePassage" class="test" style="white-space:pre-wrap;line-height:1.6"></div>
+<label>यहाँ टाइप करें</label><textarea id="typingAnswer" placeholder="Typing यहाँ शुरू करें..." spellcheck="false" autocomplete="off" autocorrect="off"></textarea>
+<button id="submitTyping">Submit Test</button><button class="secondary" id="cancelTyping">Back</button>
+</section>
+<section class="card hidden" id="resultScreen"><h2>Typing Test Result</h2><div id="resultDetails"></div><button id="backDashboard">Back to Dashboard</button></section>
 <p id="status"></p>
 </main>
-
 <script>
 (()=>{
-const $=id=>document.getElementById(id);
-let sb=null;
-
-function show(id,value){
-$(id).classList.toggle('hidden',!value);
-}
-function msg(text,ok=false){
-$('status').textContent=text;
-$('status').className=ok?'ok':'';
-}
-function load(){
-const u=localStorage.getItem('exb_url');
-const k=localStorage.getItem('exb_key');
-if(!u||!k)return false;
-sb=window.supabase.createClient(u,k);
-return true;
-}
-function emailFor(v){
-v=v.trim();
-return v.includes('@')?v:
-v.toLowerCase().replace(/[^a-z0-9_-]/g,'')+'@students.exambooti.com';
-}
-function esc(v){
-return String(v||'').replace(/[&<>"']/g,c=>({
-'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-}[c]));
-}
-function wordCount(s){
-return s.trim().split(/\s+/).filter(Boolean).length;
-}
-function card(title,words,duration){
-return '<div class="test"><h3>'+esc(title)+'</h3>'+
-'<span class="tag">'+words+' Words</span>'+
-'<span class="tag">'+duration+' Minutes</span></div>';
-}
-
-$('connect').onclick=async()=>{
-try{
-const u=$('url').value.trim().replace(/\/$/,'');
-const k=$('key').value.trim();
-if(!u||!k)throw Error('Project URL और Publishable Key भरें।');
-if(!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(u))
-throw Error('Project URL गलत है।');
-sb=window.supabase.createClient(u,k);
-const {error}=await sb.auth.getSession();
-if(error)throw error;
-localStorage.setItem('exb_url',u);
-localStorage.setItem('exb_key',k);
-show('setup',false);
-show('login',true);
-msg('Connection successful. अब Login करें।',true);
-}catch(e){msg('Connection error: '+e.message);}
-};
-
-$('change').onclick=()=>{
-localStorage.removeItem('exb_url');
-localStorage.removeItem('exb_key');
-location.reload();
-};
-
-$('signin').onclick=async()=>{
-try{
-if(!sb&&!load())throw Error('पहले Setup करें।');
-const id=$('identity').value.trim();
-const pw=$('password').value;
-if(!id||!pw)throw Error('ID/Email और Password भरें।');
-
-const {data,error}=await sb.auth.signInWithPassword({
-email:emailFor(id),password:pw
-});
-if(error)throw error;
-
-const {data:p,error:pe}=await sb.from('profiles')
-.select('full_name,role,student_id')
-.eq('id',data.user.id).single();
-if(pe)throw pe;
-
-show('login',false);
-if(p.role==='admin'){
-show('admin',true);
-await refreshList();
-await refreshShorthandAdmin();
-await refreshTypingAdmin();
-}else{
-show('student',true);
-$('welcome').textContent='नमस्ते, '+(p.full_name||p.student_id||'Student');
-await refreshShorthandStudent();
-await refreshTypingStudent();
-}
-msg('Login successful.',true);
-}catch(e){msg('Login error: '+e.message);}
-};
-
-async function refreshList(){
-try{
-const {data,error}=await sb.from('profiles')
-.select('student_id,full_name')
-.eq('role','student')
-.order('created_at',{ascending:false});
-if(error)throw error;
-if(!data.length){$('list').textContent='अभी कोई Student नहीं है।';return;}
-$('list').innerHTML='<h3>Students List</h3><table><tr><th>Student ID</th><th>Name</th></tr>'+
-data.map(x=>'<tr><td>'+esc(x.student_id)+'</td><td>'+esc(x.full_name)+'</td></tr>').join('')+
-'</table>';
-}catch(e){$('list').textContent='List error: '+e.message;}
-}
-
-$('create').onclick=async()=>{
-try{
-const sid=$('sid').value.trim().toUpperCase();
-const name=$('sname').value.trim();
-const pw=$('spass').value;
-if(!sid||!name||!pw)throw Error('तीनों बॉक्स भरें।');
-if(pw.length<8)throw Error('Password कम से कम 8 अक्षर का रखें।');
-
-const {data:{session}}=await sb.auth.getSession();
-if(!session)throw Error('Admin login दोबारा करें।');
-
-const {data,error}=await sb.functions.invoke('clever-processor',{
-body:{student_id:sid,full_name:name,password:pw},
-headers:{Authorization:'Bearer '+session.access_token}
-});
-if(error){
-let detail=error.message;
-if(error.context){
-try{
-const b=await error.context.json();
-detail+=' | '+(b.error||JSON.stringify(b));
-}catch(_){}
-}
-throw Error(detail);
-}
-if(data?.error)throw Error(data.error);
-
-msg('Student account बन गया: '+sid,true);
-$('sid').value='';
-$('sname').value='';
-$('spass').value='';
-await refreshList();
-}catch(e){msg('Student create error: '+e.message);}
-};
-
-$('shWords').onchange=()=>{
-$('shDuration').innerHTML=$('shWords').value==='400'
-?'<option value="20">20 Minutes</option><option value="25">25 Minutes</option>'
-:'<option value="40">40 Minutes</option><option value="50">50 Minutes</option>';
-};
-
-$('saveSh').onclick=async()=>{
-try{
-const title=$('shTitle').value.trim();
-const words=Number($('shWords').value);
-const duration=Number($('shDuration').value);
-const matter=$('shMatter').value.trim();
-
-if(!title||!matter)throw Error('Test का नाम और Matter भरें।');
-const total=wordCount(matter);
-if(total!==words)throw Error('Matter में '+total+' शब्द हैं। चुने गए '+words+' शब्द होने चाहिए।');
-
-const {data:{session}}=await sb.auth.getSession();
-if(!session)throw Error('कृपया दोबारा Login करें।');
-
-const {data:test,error}=await sb.from('dictation_tests').insert({
-title:title,word_count:words,duration_minutes:duration,
-is_published:false,created_by:session.user.id
-}).select('id').single();
-if(error)throw error;
-
-const {error:keyError}=await sb.from('dictation_keys').insert({
-test_id:test.id,reference_matter:matter
-});
-if(keyError){
-await sb.from('dictation_tests').delete().eq('id',test.id);
-throw keyError;
-}
-
-const {error:pubError}=await sb.from('dictation_tests')
-.update({is_published:true}).eq('id',test.id);
-if(pubError)throw pubError;
-
-msg('Shorthand Test Publish हो गया!',true);
-$('shTitle').value='';
-$('shMatter').value='';
-await refreshShorthandAdmin();
-}catch(e){msg('Shorthand Test error: '+e.message);}
-};
-
-$('saveTy').onclick=async()=>{
-try{
-const title=$('tyTitle').value.trim();
-const words=Number($('tyWords').value);
-const duration=Number($('tyDuration').value);
-const passage=$('tyPassage').value.trim();
-
-if(!title||!passage)throw Error('Typing Test का नाम और Passage भरें।');
-const total=wordCount(passage);
-if(total!==words)throw Error('Passage में '+total+' शब्द हैं। चुने गए '+words+' शब्द होने चाहिए।');
-
-const {data:{session}}=await sb.auth.getSession();
-if(!session)throw Error('कृपया दोबारा Login करें।');
-
-const {data:test,error}=await sb.from('typing_tests').insert({
-title:title,word_count:words,duration_minutes:duration,
-is_published:false,created_by:session.user.id
-}).select('id').single();
-if(error)throw error;
-
-const {error:passError}=await sb.from('typing_passages').insert({
-test_id:test.id,passage:passage
-});
-if(passError){
-await sb.from('typing_tests').delete().eq('id',test.id);
-throw passError;
-}
-
-const {error:pubError}=await sb.from('typing_tests')
-.update({is_published:true}).eq('id',test.id);
-if(pubError)throw pubError;
-
-msg('English Typing Test Publish हो गया!',true);
-$('tyTitle').value='';
-$('tyPassage').value='';
-await refreshTypingAdmin();
-}catch(e){msg('Typing Test error: '+e.message);}
-};
-
-async function refreshShorthandAdmin(){
-try{
-const {data,error}=await sb.from('dictation_tests')
-.select('id,title,word_count,duration_minutes,is_published')
-.order('created_at',{ascending:false});
-if(error)throw error;
-$('adminShTests').innerHTML='<h3>Shorthand Tests List</h3>'+
-(data.length?data.map(t=>card(t.title,t.word_count,t.duration_minutes)).join(''):'अभी कोई Shorthand Test नहीं है।');
-}catch(e){$('adminShTests').textContent='Shorthand list error: '+e.message;}
-}
-
-async function refreshTypingAdmin(){
-try{
-const {data,error}=await sb.from('typing_tests')
-.select('id,title,word_count,duration_minutes,is_published')
-.order('created_at',{ascending:false});
-if(error)throw error;
-$('adminTyTests').innerHTML='<h3>Typing Tests List</h3>'+
-(data.length?data.map(t=>card(t.title,t.word_count,t.duration_minutes)).join(''):'अभी कोई Typing Test नहीं है।');
-}catch(e){$('adminTyTests').textContent='Typing list error: '+e.message;}
-}
-
-async function refreshShorthandStudent(){
-try{
-const {data,error}=await sb.from('dictation_tests')
-.select('id,title,word_count,duration_minutes')
-.eq('is_published',true).order('created_at',{ascending:false});
-if(error)throw error;
-$('studentShTests').innerHTML=data.length?
-data.map(t=>card(t.title,t.word_count,t.duration_minutes)).join(''):
-'अभी कोई Shorthand Test उपलब्ध नहीं है।';
-}catch(e){$('studentShTests').textContent='Error: '+e.message;}
-}
-
-async function refreshTypingStudent(){
-try{
-const {data,error}=await sb.from('typing_tests')
-.select('id,title,word_count,duration_minutes')
-.eq('is_published',true).order('created_at',{ascending:false});
-if(error)throw error;
-$('studentTyTests').innerHTML=data.length?
-data.map(t=>card(t.title,t.word_count,t.duration_minutes)).join(''):
-'अभी कोई Typing Test उपलब्ध नहीं है।';
-}catch(e){$('studentTyTests').textContent='Error: '+e.message;}
-}
-
-async function logout(){
-await sb.auth.signOut();
-show('admin',false);
-show('student',false);
-show('login',true);
-msg('Logout हो गया।',true);
-}
-
-$('logoutA').onclick=logout;
-$('logoutS').onclick=logout;
-
-if(load()){
-show('setup',false);
-show('login',true);
-}
+const $=id=>document.getElementById(id);let sb=null,currentUser=null,currentProfile=null,activeTest=null,timer=null,endsAt=0,submitted=false;
+function show(id,v){$(id).classList.toggle('hidden',!v)}
+function msg(t,ok=false){$('status').textContent=t;$('status').className=ok?'ok':''}
+function load(){const u=localStorage.getItem('exb_url'),k=localStorage.getItem('exb_key');if(!u||!k)return false;sb=window.supabase.createClient(u,k);return true}
+function emailFor(v){v=v.trim();return v.includes('@')?v:v.toLowerCase().replace(/[^a-z0-9_-]/g,'')+'@students.exambooti.com'}
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function wordCount(s){return s.trim().split(/\s+/).filter(Boolean).length}
+function card(title,words,duration){return '<div class="test"><h3>'+esc(title)+'</h3><span class="tag">'+words+' Words</span><span class="tag">'+duration+' Minutes</span></div>'}
+$('connect').onclick=async()=>{try{const u=$('url').value.trim().replace(/\/$/,''),k=$('key').value.trim();if(!u||!k)throw Error('Project URL और Publishable Key भरें।');if(!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(u))throw Error('Project URL गलत है।');sb=window.supabase.createClient(u,k);const {error}=await sb.auth.getSession();if(error)throw error;localStorage.setItem('exb_url',u);localStorage.setItem('exb_key',k);show('setup',false);show('login',true);msg('Connection successful. अब Login करें।',true)}catch(e){msg('Connection error: '+e.message)}};
+$('change').onclick=()=>{localStorage.removeItem('exb_url');localStorage.removeItem('exb_key');location.reload()};
+$('signin').onclick=async()=>{try{if(!sb&&!load())throw Error('पहले Setup करें।');const id=$('identity').value.trim(),pw=$('password').value;if(!id||!pw)throw Error('ID/Email और Password भरें।');const {data,error}=await sb.auth.signInWithPassword({email:emailFor(id),password:pw});if(error)throw error;currentUser=data.user;const {data:p,error:pe}=await sb.from('profiles').select('full_name,role,student_id').eq('id',data.user.id).single();if(pe)throw pe;currentProfile=p;show('login',false);if(p.role==='admin'){show('admin',true);await refreshList();await refreshShorthandAdmin();await refreshTypingAdmin();await refreshAdminResults()}else{show('student',true);$('welcome').textContent='नमस्ते, '+(p.full_name||p.student_id||'Student');await refreshShorthandStudent();await refreshTypingStudent();await refreshStudentResults()}msg('Login successful.',true)}catch(e){msg('Login error: '+e.message)}};
+async function refreshList(){try{const {data,error}=await sb.from('profiles').select('student_id,full_name').eq('role','student').order('created_at',{ascending:false});if(error)throw error;$('list').innerHTML=!data.length?'अभी कोई Student नहीं है।':'<h3>Students List</h3><table><tr><th>Student ID</th><th>Name</th></tr>'+data.map(x=>'<tr><td>'+esc(x.student_id)+'</td><td>'+esc(x.full_name)+'</td></tr>').join('')+'</table>'}catch(e){$('list').textContent='List error: '+e.message}}
+$('create').onclick=async()=>{try{const sid=$('sid').value.trim().toUpperCase(),name=$('sname').value.trim(),pw=$('spass').value;if(!sid||!name||!pw)throw Error('तीनों बॉक्स भरें।');if(pw.length<8)throw Error('Password कम से कम 8 अक्षर का रखें।');const {data:{session}}=await sb.auth.getSession();if(!session)throw Error('Admin login दोबारा करें।');const {data,error}=await sb.functions.invoke('clever-processor',{body:{student_id:sid,full_name:name,password:pw},headers:{Authorization:'Bearer '+session.access_token}});if(error)throw error;if(data?.error)throw Error(data.error);msg('Student account बन गया: '+sid,true);$('sid').value='';$('sname').value='';$('spass').value='';await refreshList()}catch(e){msg('Student create error: '+e.message)}};
+$('shWords').onchange=()=>$('shDuration').innerHTML=$('shWords').value==='400'?'<option value="20">20 Minutes</option><option value="25">25 Minutes</option>':'<option value="40">40 Minutes</option><option value="50">50 Minutes</option>';
+$('saveSh').onclick=async()=>{try{const title=$('shTitle').value.trim(),words=Number($('shWords').value),duration=Number($('shDuration').value),matter=$('shMatter').value.trim();if(!title||!matter)throw Error('Test का नाम और Matter भरें।');const total=wordCount(matter);if(total!==words)throw Error('Matter में '+total+' शब्द हैं। चुने गए '+words+' शब्द होने चाहिए।');const {data:{session}}=await sb.auth.getSession();const {data:test,error}=await sb.from('dictation_tests').insert({title,word_count:words,duration_minutes:duration,is_published:false,created_by:session.user.id}).select('id').single();if(error)throw error;const {error:keyError}=await sb.from('dictation_keys').insert({test_id:test.id,reference_matter:matter});if(keyError){await sb.from('dictation_tests').delete().eq('id',test.id);throw keyError}const {error:pubError}=await sb.from('dictation_tests').update({is_published:true}).eq('id',test.id);if(pubError)throw pubError;msg('Shorthand Test Publish हो गया!',true);$('shTitle').value='';$('shMatter').value='';await refreshShorthandAdmin()}catch(e){msg('Shorthand Test error: '+e.message)}};
+$('saveTy').onclick=async()=>{try{const title=$('tyTitle').value.trim(),words=Number($('tyWords').value),duration=Number($('tyDuration').value),passage=$('tyPassage').value.trim();if(!title||!passage)throw Error('Typing Test का नाम और Passage भरें।');const total=wordCount(passage);if(total!==words)throw Error('Passage में '+total+' शब्द हैं। चुने गए '+words+' शब्द होने चाहिए।');const {data:{session}}=await sb.auth.getSession();const {data:test,error}=await sb.from('typing_tests').insert({title,word_count:words,duration_minutes:duration,is_published:false,created_by:session.user.id}).select('id').single();if(error)throw error;const {error:passError}=await sb.from('typing_passages').insert({test_id:test.id,passage});if(passError){await sb.from('typing_tests').delete().eq('id',test.id);throw passError}const {error:pubError}=await sb.from('typing_tests').update({is_published:true}).eq('id',test.id);if(pubError)throw pubError;msg('English Typing Test Publish हो गया!',true);$('tyTitle').value='';$('tyPassage').value='';await refreshTypingAdmin();await refreshTypingStudent()}catch(e){msg('Typing Test error: '+e.message)}};
+async function refreshShorthandAdmin(){try{const {data,error}=await sb.from('dictation_tests').select('id,title,word_count,duration_minutes').order('created_at',{ascending:false});if(error)throw error;$('adminShTests').innerHTML='<h3>Shorthand Tests List</h3>'+(data.length?data.map(t=>card(t.title,t.word_count,t.duration_minutes)).join(''):'अभी कोई Shorthand Test नहीं है।')}catch(e){$('adminShTests').textContent='Shorthand list error: '+e.message}}
+async function refreshTypingAdmin(){try{const {data,error}=await sb.from('typing_tests').select('id,title,word_count,duration_minutes').order('created_at',{ascending:false});if(error)throw error;$('adminTyTests').innerHTML='<h3>Typing Tests List</h3>'+(data.length?data.map(t=>card(t.title,t.word_count,t.duration_minutes)).join(''):'अभी कोई Typing Test नहीं है।')}catch(e){$('adminTyTests').textContent='Typing list error: '+e.message}}
+async function refreshShorthandStudent(){try{const {data,error}=await sb.from('dictation_tests').select('id,title,word_count,duration_minutes').eq('is_published',true).order('created_at',{ascending:false});if(error)throw error;$('studentShTests').innerHTML=data.length?data.map(t=>card(t.title,t.word_count,t.duration_minutes)).join(''):'अभी कोई Shorthand Test उपलब्ध नहीं है।'}catch(e){$('studentShTests').textContent='Error: '+e.message}}
+async function refreshTypingStudent(){try{const {data,error}=await sb.from('typing_tests').select('id,title,word_count,duration_minutes').eq('is_published',true).order('created_at',{ascending:false});if(error)throw error;$('studentTyTests').innerHTML=data.length?data.map(t=>'<div class="test"><h3>'+esc(t.title)+'</h3><span class="tag">'+t.word_count+' Words</span><span class="tag">'+t.duration_minutes+' Minutes</span><br><button onclick="window.startTypingTest(\''+t.id+'\')">Start Typing Test</button></div>').join(''):'अभी कोई Typing Test उपलब्ध नहीं है।'}catch(e){$('studentTyTests').textContent='Error: '+e.message}}
+window.startTypingTest=async id=>{try{const {data:t,error}=await sb.from('typing_tests').select('id,title,word_count,duration_minutes').eq('id',id).eq('is_published',true).single();if(error)throw error;const {data:p,error:pe}=await sb.from('typing_passages').select('passage').eq('test_id',id).single();if(pe)throw pe;activeTest={...t,passage:p.passage};submitted=false;$('typingTitle').textContent=t.title;$('typingMeta').textContent=t.word_count+' words • '+t.duration_minutes+' minutes';$('sourcePassage').textContent=p.passage;$('typingAnswer').value='';show('student',false);show('typingScreen',true);$('typingAnswer').focus();endsAt=Date.now()+t.duration_minutes*60000;updateClock();timer=setInterval(updateClock,250)}catch(e){msg('Test open error: '+e.message)}};
+function updateClock(){const left=Math.max(0,endsAt-Date.now()),s=Math.ceil(left/1000),m=Math.floor(s/60),r=s%60;$('clock').textContent=String(m).padStart(2,'0')+':'+String(r).padStart(2,'0');if(left<=0&&!submitted)submitTyping(true)}
+$('submitTyping').onclick=()=>submitTyping(false);$('cancelTyping').onclick=()=>{if(confirm('क्या टेस्ट छोड़ना चाहते हैं? अभी तक का उत्तर जमा नहीं होगा।')){clearInterval(timer);show('typingScreen',false);show('student',true)}};
+async function submitTyping(auto){if(submitted||!activeTest)return;submitted=true;clearInterval(timer);$('submitTyping').disabled=true;try{const typed=$('typingAnswer').value.trim(),elapsed=Math.max(1,Math.min(activeTest.duration_minutes*60,Math.round((activeTest.duration_minutes*60000-(endsAt-Date.now()))/1000))),typedWords=wordCount(typed),minutes=elapsed/60,wpm=Math.round(typedWords/minutes),target=activeTest.passage.trim().split(/\s+/),entered=typed?typed.split(/\s+/):[],limit=Math.min(target.length,entered.length);let correct=0;for(let i=0;i<limit;i++){if(target[i].toLowerCase().replace(/[^\w']/g,'')===entered[i].toLowerCase().replace(/[^\w']/g,''))correct++}const mistakes=Math.max(target.length,entered.length)-correct,accuracy=entered.length?Math.max(0,correct/entered.length*100):0;const payload={test_id:activeTest.id,user_id:currentUser.id,typed_text:typed,wpm,accuracy:Number(accuracy.toFixed(2)),mistakes,elapsed_seconds:elapsed};const {error}=await sb.from('typing_submissions').insert(payload);if(error)throw error;$('resultDetails').innerHTML='<p><b>Test:</b> '+esc(activeTest.title)+'</p><p><b>Typing Speed:</b> '+wpm+' WPM</p><p><b>Accuracy:</b> '+accuracy.toFixed(2)+'%</p><p><b>Mistakes:</b> '+mistakes+'</p><p><b>Typed Words:</b> '+typedWords+'</p><p class="muted">'+(auto?'समय पूरा होने पर अपने आप जमा हुआ।':'आपने टेस्ट जमा किया।')+'</p>';show('typingScreen',false);show('resultScreen',true);await refreshStudentResults()}catch(e){submitted=false;$('submitTyping').disabled=false;msg('Result save error: '+e.message+' — अपने उत्तर की कॉपी सुरक्षित रखें।')}} 
+$('backDashboard').onclick=()=>{show('resultScreen',false);show('student',true);$('submitTyping').disabled=false;activeTest=null};
+async function refreshStudentResults(){try{const {data,error}=await sb.from('typing_submissions').select('wpm,accuracy,mistakes,created_at,typing_tests(title)').eq('user_id',currentUser.id).order('created_at',{ascending:false});if(error)throw error;$('studentResults').innerHTML=data.length?'<table><tr><th>Test</th><th>WPM</th><th>Accuracy</th><th>Mistakes</th></tr>'+data.map(r=>'<tr><td>'+esc(r.typing_tests?.title||'Typing Test')+'</td><td>'+r.wpm+'</td><td>'+r.accuracy+'%</td><td>'+r.mistakes+'</td></tr>').join('')+'</table>':'अभी कोई रिजल्ट नहीं है।'}catch(e){$('studentResults').textContent='Results error: '+e.message}}
+async function refreshAdminResults(){try{const {data,error}=await sb.from('typing_submissions').select('wpm,accuracy,mistakes,created_at,user_id,typing_tests(title),profiles(full_name,student_id)').order('created_at',{ascending:false});if(error)throw error;$('adminResults').innerHTML=data.length?'<table><tr><th>Student</th><th>Test</th><th>WPM</th><th>Accuracy</th><th>Mistakes</th></tr>'+data.map(r=>'<tr><td>'+esc(r.profiles?.full_name||r.profiles?.student_id||r.user_id)+'</td><td>'+esc(r.typing_tests?.title||'Typing Test')+'</td><td>'+r.wpm+'</td><td>'+r.accuracy+'%</td><td>'+r.mistakes+'</td></tr>').join('')+'</table>':'अभी कोई Typing Result नहीं है।'}catch(e){$('adminResults').textContent='Admin results error: '+e.message}}
+$('refreshResults').onclick=refreshAdminResults;
+async function logout(){clearInterval(timer);await sb.auth.signOut();currentUser=null;currentProfile=null;show('admin',false);show('student',false);show('typingScreen',false);show('resultScreen',false);show('login',true);msg('Logout हो गया।',true)}
+$('logoutA').onclick=logout;$('logoutS').onclick=logout;
+if(load()){show('setup',false);show('login',true)}
 })();
 </script>
-</body>
-</html>
+</body></html>

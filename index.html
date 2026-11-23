@@ -68,7 +68,7 @@ hr{margin:25px 0;border:0;border-top:1px solid #ddd}table{width:100%;border-coll
 <section class="card hidden" id="typingScreen">
 <h2 id="typingTitle">English Typing Test</h2><p id="typingMeta" class="muted"></p>
 <div id="clock">00:00</div><p class="muted">नीचे दिए गए passage को देखकर उसी तरह टाइप करें। समय पूरा होने पर टेस्ट अपने आप जमा हो जाएगा।</p>
-<div id="sourcePassage" class="test" style="white-space:pre-wrap;line-height:1.6;height:105px;max-height:105px;overflow:hidden;position:relative"></div>
+<div id="sourcePassage" class="test" style="white-space:pre-wrap;line-height:1.6;height:105px;max-height:105px;overflow-y:auto;overflow-x:hidden;position:relative;scroll-behavior:auto"></div>
 <label>यहाँ टाइप करें</label><textarea id="typingAnswer" placeholder="Typing यहाँ शुरू करें..." spellcheck="false" autocomplete="off" autocorrect="off"></textarea>
 <button id="submitTyping">Submit Test</button><button class="secondary" id="cancelTyping">Back</button>
 </section>

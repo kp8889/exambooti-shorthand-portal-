@@ -114,7 +114,8 @@ $('backShDashboard').onclick=()=>{show('shorthandResultScreen',false);show('stud
 async function refreshStudentShResults(){try{const {data,error}=await sb.from('shorthand_submissions').select('correct_words,wrong_words,missing_words,extra_words,accuracy,created_at,dictation_tests(title)').eq('user_id',currentUser.id).order('created_at',{ascending:false});if(error)throw error;$('studentShResults').innerHTML=data.length?'<table><tr><th>Test</th><th>Correct</th><th>Wrong</th><th>Missing</th><th>Extra</th><th>Accuracy</th></tr>'+data.map(r=>'<tr><td>'+esc(r.dictation_tests?.title||'Shorthand Test')+'</td><td>'+r.correct_words+'</td><td>'+r.wrong_words+'</td><td>'+r.missing_words+'</td><td>'+r.extra_words+'</td><td>'+r.accuracy+'%</td></tr>').join('')+'</table>':'अभी कोई Shorthand Result नहीं है।'}catch(e){$('studentShResults').textContent='Shorthand results error: '+e.message}}
 async function refreshAdminShResults(){try{const {data,error}=await sb.from('shorthand_submissions').select('correct_words,wrong_words,missing_words,extra_words,accuracy,created_at,dictation_tests(title),profiles(full_name,student_id)').order('created_at',{ascending:false});if(error)throw error;$('adminShResults').innerHTML=data.length?'<table><tr><th>Student</th><th>Test</th><th>Correct</th><th>Wrong</th><th>Missing</th><th>Extra</th><th>Accuracy</th></tr>'+data.map(r=>'<tr><td>'+esc(r.profiles?.full_name||r.profiles?.student_id||'Student')+'</td><td>'+esc(r.dictation_tests?.title||'Shorthand Test')+'</td><td>'+r.correct_words+'</td><td>'+r.wrong_words+'</td><td>'+r.missing_words+'</td><td>'+r.extra_words+'</td><td>'+r.accuracy+'%</td></tr>').join('')+'</table>':'अभी कोई Shorthand Result नहीं है।'}catch(e){$('adminShResults').textContent='Admin shorthand results error: '+e.message}}
 async function refreshTypingStudent(){try{const {data,error}=await sb.from('typing_tests').select('id,title,word_count,duration_minutes').eq('is_published',true).or('is_archived.is.null,is_archived.eq.false').order('created_at',{ascending:false});if(error)throw error;$('studentTyTests').innerHTML=data.length?data.map(t=>'<div class="test"><h3>'+esc(t.title)+'</h3><span class="tag">'+t.word_count+' Words</span><span class="tag">'+t.duration_minutes+' Minutes</span><br><button onclick="window.startTypingTest(\''+t.id+'\')">Start Typing Test</button></div>').join(''):'अभी कोई Typing Test उपलब्ध नहीं है।'}catch(e){$('studentTyTests').textContent='Error: '+e.message}}
-window.startTypingTest=async id=>{try{const {data:t,error}=await sb.from('typing_tests').select('id,title,word_count,duration_minutes').eq('id',id).eq('is_published',true).single();if(error)throw error;const {data:p,error:pe}=await sb.from('typing_passages').select('passage').eq('test_id',id).single();if(pe)throw pe;activeTest={...t,passage:p.passage};submitted=false;$('typingTitle').textContent=t.title;$('typingMeta').textContent=t.word_count+' words • '+t.duration_minutes+' minutes';$('sourcePassage').textContent=p.passage;$('typingAnswer').value='';$('submitTyping').disabled=false;show('student',false);show('typingScreen',true);$('typingAnswer').focus();const answerBox=$('typingAnswer');
+window.startTypingTest=async id=>{try{const {data:t,error}=await sb.from('typing_tests').select('id,title,word_count,duration_minutes').eq('id',id).eq('is_published',true).single();if(error)throw error;const {data:p,error:pe}=await sb.from('typing_passages').select('passage').eq('test_id',id).single();if(pe)throw pe;activeTest={...t,passage:p.passage};submitted=false;$('typingTitle').textContent=t.title;$('typingMeta').textContent=t.word_count+' words • '+t.duration_minutes+' minutes';$('sourcePassage').textContent=p.passage;$('typingAnswer').value='';$('submitTyping').disabled=false;show('student',false);show('typingScreen',true);$('typingAnswer').focus();
+const answerBox=$('typingAnswer');
 const passageBox=$('sourcePassage');
 
 answerBox.oninput=()=>{
@@ -126,6 +127,30 @@ const typedWords=wordCount(answerBox.value);
 
 if(typedWords<=0){
 passageBox.scrollTop=0;
+return;
+}
+
+if(typedWords>=matches.length){
+passageBox.scrollTop=passageBox.scrollHeight;
+return;
+}
+
+const nextWord=matches[typedWords];
+const range=document.createRange();
+range.setStart(textNode,nextWord.index);
+range.setEnd(textNode,nextWord.index+1);
+
+const wordPosition=range.getBoundingClientRect();
+const boxPosition=passageBox.getBoundingClientRect();
+const lineHeight=parseFloat(getComputedStyle(passageBox).lineHeight)||26;
+
+if(wordPosition.bottom>boxPosition.bottom-lineHeight*1.5){
+passageBox.scrollTop+=lineHeight;
+}
+};
+
+passageBox.scrollTop=0;
+                                      
 return;
 }
 

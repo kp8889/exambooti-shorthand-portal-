@@ -154,8 +154,46 @@ $('saveTy').onclick=async()=>{try{const title=$('tyTitle').value.trim(),words=Nu
 async function publishTest(table,id,kind){try{if(!confirm('क्या इस '+kind+' को विद्यार्थियों के लिए Publish करना है?'))return;const {error}=await sb.from(table).update({is_published:true}).eq('id',id);if(error)throw error;msg(kind+' Publish हो गया।',true);if(table==='typing_tests'){await refreshTypingAdmin();await refreshTypingStudent()}else{await refreshShorthandAdmin();await refreshShorthandStudent()}}catch(e){msg('Publish error: '+e.message)}}
 window.publishTypingTest=id=>publishTest('typing_tests',id,'Typing Test');
 window.publishShorthandTest=id=>publishTest('dictation_tests',id,'Shorthand Test');
-async function refreshShorthandAdmin(){try{const {data,error}=await sb.from('dictation_tests').select('id,title,word_count,duration_minutes,is_published,is_archived').or('is_archived.is.null,is_archived.eq.false').order('created_at',{ascending:false});if(error)throw error;$('adminShTests').innerHTML='<h3>Shorthand Tests List</h3>'+(data.length?data.map(t=>'<div class="test"><b>'+esc(t.title)+'</b><br><span class="tag">'+(t.word_count===400?'400–500':'800–1000')+' Words</span><span class="tag">'+t.duration_minutes+' Minutes</span><span class="tag">'+(t.is_published?'Published':'Draft')+'</span>'+'<br><button class="secondary" onclick="window.archiveShTest(\''+t.id+'\')">Archive</button>'+(t.is_published?'':'<button onclick="window.publishShorthandTest(\''+t.id+'\')">Publish</button>')+'</div>').join(''):'अभी कोई Shorthand Test नहीं है।')}catch(e){$('adminShTests').textContent='Shorthand list error: '+e.message}}
-async function refreshTypingAdmin(){try{const {data,error}=await sb.from('typing_tests').select('id,title,word_count,duration_minutes,is_published,is_archived').or('is_archived.is.null,is_archived.eq.false').order('created_at',{ascending:false});if(error)throw error;$('adminTyTests').innerHTML='<h3>Typing Tests List</h3>'+(data.length?data.map(t=>'<div class="test"><b>'+esc(t.title)+'</b><br><span class="tag">'+t.word_count+' Words</span><span class="tag">'+t.duration_minutes+' Minutes</span><span class="tag">'+(t.is_published?'Published':'Draft')+'</span>'+'<br><button class="secondary" onclick="window.archiveTyTest(\''+t.id+'\')">Archive</button>'+(t.is_published?'':'<button onclick="window.publishTypingTest(\''+t.id+'\')">Publish</button>')+'</div>').join(''):'अभी कोई Typing Test नहीं है।')}catch(e){$('adminTyTests').textContent='Typing list error: '+e.message}}
+
+async function refreshShorthandAdmin(){
+try{
+const {data,error}=await sb.from('dictation_tests')
+.select('id,title,word_count,duration_minutes,is_published,is_archived')
+.order('created_at',{ascending:false});
+if(error)throw error;
+
+const active=data.filter(t=>t.is_archived!==true);
+const archived=data.filter(t=>t.is_archived===true);
+
+const item=t=>'<div class="test"><b>'+esc(t.title)+'</b><br>'+
+'<span class="tag">'+(t.word_count===400?'400–500':'800–1000')+' Words</span>'+
+'<span class="tag">'+t.duration_minutes+' Minutes</span>'+
+'<span class="tag">'+(t.is_published?'Published':'Draft')+'</span>'+
+'<br><button class="secondary" onclick="window.archiveShTest(\''+t.id+'\')">Archive</button>'+
+(t.is_published?'':'<button onclick="window.publishShorthandTest(\''+t.id+'\')">Publish</button>')+
+'</div>';
+
+$('adminShTests').innerHTML='<h3>Shorthand Tests List</h3>'+
+(active.length?active.map(item).join(''):'अभी कोई Shorthand Test नहीं है।')+
+'<h3>Archived Shorthand Tests</h3>'+
+(archived.length?archived.map(t=>'<div class="test"><b>'+esc(t.title)+'</b><br>'+
+'<button onclick="window.restoreShTest(\''+t.id+'\')">Restore</button></div>').join(''):'अभी कोई Archived Test नहीं है।');
+
+}catch(e){$('adminShTests').textContent='Shorthand list error: '+e.message}
+}
+
+window.restoreShTest=async id=>{
+try{
+if(!confirm('इस Shorthand Test को वापस लाना है?'))return;
+const {error}=await sb.from('dictation_tests')
+.update({is_archived:false}).eq('id',id);
+if(error)throw error;
+msg('Shorthand Test Restore हो गया।',true);
+await refreshShorthandAdmin();
+await refreshShorthandStudent();
+}catch(e){msg('Restore error: '+e.message)}
+};
+  async function refreshTypingAdmin(){try{const {data,error}=await sb.from('typing_tests').select('id,title,word_count,duration_minutes,is_published,is_archived').or('is_archived.is.null,is_archived.eq.false').order('created_at',{ascending:false});if(error)throw error;$('adminTyTests').innerHTML='<h3>Typing Tests List</h3>'+(data.length?data.map(t=>'<div class="test"><b>'+esc(t.title)+'</b><br><span class="tag">'+t.word_count+' Words</span><span class="tag">'+t.duration_minutes+' Minutes</span><span class="tag">'+(t.is_published?'Published':'Draft')+'</span>'+'<br><button class="secondary" onclick="window.archiveTyTest(\''+t.id+'\')">Archive</button>'+(t.is_published?'':'<button onclick="window.publishTypingTest(\''+t.id+'\')">Publish</button>')+'</div>').join(''):'अभी कोई Typing Test नहीं है।')}catch(e){$('adminTyTests').textContent='Typing list error: '+e.message}}
 window.archiveShTest=async id=>{try{if(!confirm('इस Shorthand Test को Archive करना है? पुराने Results सुरक्षित रहेंगे।'))return;const {error}=await sb.from('dictation_tests').update({is_archived:true}).eq('id',id);if(error)throw error;msg('Shorthand Test Archive हो गया।',true);await refreshShorthandAdmin();await refreshShorthandStudent()}catch(e){msg('Archive error: '+e.message)}};
 window.archiveTyTest=async id=>{try{if(!confirm('इस Typing Test को Archive करना है? पुराने Results सुरक्षित रहेंगे।'))return;const {error}=await sb.from('typing_tests').update({is_archived:true}).eq('id',id);if(error)throw error;msg('Typing Test Archive हो गया।',true);await refreshTypingAdmin();await refreshTypingStudent()}catch(e){msg('Archive error: '+e.message)}};
 async function refreshShorthandStudent(){try{const {data,error}=await sb.from('dictation_tests').select('id,title,word_count,duration_minutes').eq('is_published',true).or('is_archived.is.null,is_archived.eq.false').order('created_at',{ascending:false});if(error)throw error;$('studentShTests').innerHTML=data.length?data.map(t=>'<div class="test"><h3>'+esc(t.title)+'</h3><span class="tag">'+(t.word_count===400?'400–500':'800–1000')+' Words</span><span class="tag">'+t.duration_minutes+' Minutes</span><br><button onclick="window.startShorthandTest(\''+t.id+'\')">Start Transcription</button></div>').join(''):'अभी कोई Shorthand Test उपलब्ध नहीं है।'}catch(e){$('studentShTests').textContent='Error: '+e.message}}

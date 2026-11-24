@@ -256,37 +256,46 @@ $('typingAnswer').focus();
 const answerBox=$('typingAnswer');
 const passageBox=$('sourcePassage');
 
-answerBox.oninput=()=>{
-const textNode=passageBox.firstChild;
-if(!textNode)return;
+function renderTypingPassage(){
+  const original=activeTest.passage;
+  const typed=answerBox.value;
+  let html='';
 
-const matches=[...textNode.textContent.matchAll(/\S+/g)];
-const typedWords=wordCount(answerBox.value);
+  for(let i=0;i<original.length;i++){
+    const ch=original[i];
+    let cls='ty-pending';
 
-if(typedWords<=0){
-passageBox.scrollTop=0;
-return;
+    if(i<typed.length){
+      cls=typed[i]===ch?'ty-correct':'ty-wrong';
+    }
+
+    html+='<span class="'+cls+'" data-pos="'+i+'">'+esc(ch)+'</span>';
+  }
+
+  passageBox.innerHTML=html;
+
+  if(typed.length>0){
+    const pos=Math.min(typed.length-1,original.length-1);
+    const current=passageBox.querySelector('[data-pos="'+pos+'"]');
+
+    if(current){
+      const r=current.getBoundingClientRect();
+      const b=passageBox.getBoundingClientRect();
+
+      if(r.bottom>b.bottom-45){
+        passageBox.scrollTop+=r.bottom-b.bottom+45;
+      }
+      else if(r.top<b.top){
+        passageBox.scrollTop-=b.top-r.top+10;
+      }
+    }
+  }else{
+    passageBox.scrollTop=0;
+  }
 }
 
-if(typedWords>=matches.length){
-passageBox.scrollTop=passageBox.scrollHeight;
-return;
-}
-
-const nextWord=matches[typedWords];
-const range=document.createRange();
-range.setStart(textNode,nextWord.index);
-range.setEnd(textNode,nextWord.index+1);
-
-const wordPosition=range.getBoundingClientRect();
-const boxPosition=passageBox.getBoundingClientRect();
-const lineHeight=parseFloat(getComputedStyle(passageBox).lineHeight)||26;
-
-if(wordPosition.bottom>boxPosition.bottom-lineHeight*1.5){
-passageBox.scrollTop+=lineHeight;
-}
-};
-
+answerBox.oninput=renderTypingPassage;
+renderTypingPassage();
 passageBox.scrollTop=0;
 endsAt=Date.now()+t.duration_minutes*60000;
 updateClock();

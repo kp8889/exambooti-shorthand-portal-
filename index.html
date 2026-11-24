@@ -322,37 +322,83 @@ const minutes=elapsed/60;
 const wpm=Math.round(typedWords/minutes);
 const target=activeTest.passage.trim().split(/\s+/).filter(Boolean);
 const entered=typed?typed.split(/\s+/).filter(Boolean):[];
+
 const n=target.length,m=entered.length;
-const norm=s=>s.toLowerCase().replace(/[^a-z0-9']/g,'');
-const dp=Array.from({length:n+1},()=>new Int32Array(m+1));
-for(let i=0;i<=n;i++)dp[i][0]=i;
-for(let j=0;j<=m;j++)dp[0][j]=j;
-for(let i=1;i<=n;i++){
-for(let j=1;j<=m;j++){
-const cost=norm(target[i-1])===norm(entered[j-1])?0:1;
-dp[i][j]=Math.min(
-dp[i-1][j]+1,
-dp[i][j-1]+1,
-dp[i-1][j-1]+cost
+
+const norm=s=>String(s)
+  .normalize('NFC')
+  .toLocaleLowerCase()
+  .replace(/[^\p{L}\p{N}']/gu,'');
+
+const dp=Array.from(
+  {length:n+1},
+  ()=>new Int32Array(m+1)
 );
-}}
+
+for(let i=0;i<=n;i++) dp[i][0]=i;
+for(let j=0;j<=m;j++) dp[0][j]=j;
+
+for(let i=1;i<=n;i++){
+  for(let j=1;j<=m;j++){
+    const cost=norm(target[i-1])===norm(entered[j-1])?0:1;
+
+    dp[i][j]=Math.min(
+      dp[i-1][j]+1,
+      dp[i][j-1]+1,
+      dp[i-1][j-1]+cost
+    );
+  }
+}
+
 let i=n,j=m,correct=0;
 const wrong=[],missing=[],extra=[];
+
 while(i>0||j>0){
-if(i>0&&j>0&&norm(target[i-1])===norm(entered[j-1])&&dp[i][j]===dp[i-1][j-1]){
-correct++;i--;j--;
-}else if(i>0&&j>0&&dp[i][j]===dp[i-1][j-1]+1){
-wrong.push({expected:target[i-1],typed:entered[j-1]});i--;j--;
-}else if(i>0&&dp[i][j]===dp[i-1][j]+1){
-missing.push(target[i-1]);i--;
-}else if(j>0){
-extra.push(entered[j-1]);j--;
-}else{
-break;
-}}
-wrong.reverse();missing.reverse();extra.reverse();
+
+  if(
+    i>0&&j>0&&
+    norm(target[i-1])===norm(entered[j-1])&&
+    dp[i][j]===dp[i-1][j-1]
+  ){
+    correct++;
+    i--;j--;
+  }
+  else if(
+    i>0&&j>0&&
+    dp[i][j]===dp[i-1][j-1]+1
+  ){
+    wrong.push({
+      expected:target[i-1],
+      typed:entered[j-1]
+    });
+    i--;j--;
+  }
+  else if(
+    i>0&&
+    dp[i][j]===dp[i-1][j]+1
+  ){
+    missing.push(target[i-1]);
+    i--;
+  }
+  else if(j>0){
+    extra.push(entered[j-1]);
+    j--;
+  }
+  else{
+    break;
+  }
+}
+
+wrong.reverse();
+missing.reverse();
+extra.reverse();
+
 const mistakes=wrong.length+missing.length+extra.length;
-const accuracy=n?Math.max(0,correct/n*100):0;
+
+const accuracy=(correct+mistakes)>0
+  ? (correct/(correct+mistakes))*100
+  : 0;
+  
 const payload={
 test_id:activeTest.id,
 student_id:currentUser.id,

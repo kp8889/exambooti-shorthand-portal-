@@ -228,7 +228,50 @@ window.startShorthandTest=async id=>{try{const {data:t,error}=await sb.from('dic
 function updateShClock(){const left=Math.max(0,shEndsAt-Date.now()),s=Math.ceil(left/1000),m=Math.floor(s/60),r=s%60;$('shClock').textContent=String(m).padStart(2,'0')+':'+String(r).padStart(2,'0');if(left<=0&&!shSubmitted)submitShorthand(true)}
 $('submitShorthand').onclick=()=>submitShorthand(false);
 $('cancelShorthand').onclick=()=>{if(confirm('क्या टेस्ट छोड़ना चाहते हैं? उत्तर जमा नहीं होगा।')){clearInterval(shTimer);shActiveTest=null;show('shorthandScreen',false);show('student',true)}};
-async function submitShorthand(auto){if(shSubmitted||!shActiveTest)return;shSubmitted=true;clearInterval(shTimer);$('submitShorthand').disabled=true;try{const typed=$('shorthandAnswer').value.trim(),elapsed=Math.max(1,Math.min(shActiveTest.duration_minutes*60,Math.round((shActiveTest.duration_minutes*60000-(shEndsAt-Date.now()))/1000)));const {data,error}=await sb.rpc('submit_shorthand_transcription',{p_payload:{test_id:shActiveTest.id,typed_text:typed,elapsed_seconds:elapsed}});if(error)throw error;const r=Array.isArray(data)?data[0]:data;$('shorthandResultDetails').innerHTML='<p><b>Test:</b> '+esc(shActiveTest.title)+'</p><p><b>सही शब्द:</b> '+Number(r.correct_words||0)+'</p><p><b>गलत शब्द:</b> '+Number(r.wrong_words||0)+'</p><p><b>छूटे हुए शब्द:</b> '+Number(r.missing_words||0)+'</p><p><b>अतिरिक्त शब्द:</b> '+Number(r.extra_words||0)+'</p><p><b>Accuracy:</b> '+Number(r.accuracy||0).toFixed(2)+'%</p><p class="muted">'+(auto?'समय पूरा होने पर अपने आप जमा हुआ।':'आपने टेस्ट जमा किया।')+'</p>';show('shorthandScreen',false);show('shorthandResultScreen',true);await refreshStudentShResults()}catch(e){shSubmitted=false;$('submitShorthand').disabled=false;msg('Shorthand result save error: '+e.message+' — उत्तर की कॉपी सुरक्षित रखें।')}}
+async function submitShorthand(auto){if(shSubmitted||!shActiveTest)return;shSubmitted=true;clearInterval(shTimer);$('submitShorthand').disabled=true;try{const typed=$('shorthandAnswer').value.trim(),elapsed=Math.max(1,Math.min(shActiveTest.duration_minutes*60,Math.round((shActiveTest.duration_minutes*60000-(shEndsAt-Date.now()))/1000)));const {data,error}=await sb.rpc('submit_shorthand_transcription',{p_payload:{test_id:shActiveTest.id,typed_text:typed,elapsed_seconds:elapsed}});if(error)throw error;const r=Array.isArray(data)?data[0]:data;
+const mistakes = r.details?.mistakes || [];
+
+const mistakeNames = {
+  WRONG: 'गलत शब्द (Wrong Word)',
+  MISSING: 'छूटा हुआ शब्द (Missing Word)',
+  EXTRA: 'अतिरिक्त शब्द (Extra Word)',
+  CAPITALIZATION: 'Capital / Small Letter की गलती',
+  SENTENCE_CAPITALIZATION: 'वाक्य के पहले अक्षर की गलती',
+  SINGULAR_PLURAL: 'Singular / Plural की गलती',
+  EXTRA_SPACING: 'Extra Spacing',
+  FULL_STOP: 'Full Stop की गलती',
+  QUESTION_MARK: 'Question Mark की गलती'
+};
+
+$('shorthandResultDetails').innerHTML =
+  '<p><b>Test:</b> ' + esc(shActiveTest.title) + '</p>' +
+  '<p><b>सही शब्द:</b> ' + Number(r.correct_words || 0) + '</p>' +
+  '<p><b>गलत शब्द:</b> ' + Number(r.wrong_words || 0) + '</p>' +
+  '<p><b>छूटे हुए शब्द:</b> ' + Number(r.missing_words || 0) + '</p>' +
+  '<p><b>अतिरिक्त शब्द:</b> ' + Number(r.extra_words || 0) + '</p>' +
+  '<p><b>Half Errors:</b> ' + Number(r.half_errors || 0) + '</p>' +
+  '<p><b>Total Errors:</b> ' + Number(r.actual_errors || 0) + '</p>' +
+  '<p><b>Accuracy:</b> ' + Number(r.accuracy || 0).toFixed(2) + '%</p>' +
+  '<hr>' +
+  '<h3>Detailed Mistake Report</h3>' +
+  (mistakes.length
+    ? '<table><tr><th>गलती</th><th>जगह</th><th>Original</th><th>Student Typed</th><th>Error</th></tr>' +
+      mistakes.map(m =>
+        '<tr>' +
+        '<td>' + esc(mistakeNames[m.type] || m.type) + '</td>' +
+        '<td>' + esc(m.location || '-') + '</td>' +
+        '<td>' + esc(m.expected ?? m.reference_count ?? '-') + '</td>' +
+        '<td>' + esc(m.typed ?? m.typed_count ?? '-') + '</td>' +
+        '<td>' + Number(m.error_value || 0) + '</td>' +
+        '</tr>'
+      ).join('') +
+      '</table>'
+    : '<p>इस टेस्ट की Detailed Mistake Report उपलब्ध नहीं है।</p>'
+  ) +
+  '<p class="muted">' +
+  (auto ? 'समय पूरा होने पर अपने आप जमा हुआ।' : 'आपने टेस्ट जमा किया।') +
+  '</p>';
+                                                                                                                                                         show('shorthandScreen',false);show('shorthandResultScreen',true);await refreshStudentShResults()}catch(e){shSubmitted=false;$('submitShorthand').disabled=false;msg('Shorthand result save error: '+e.message+' — उत्तर की कॉपी सुरक्षित रखें।')}}
 $('backShDashboard').onclick=()=>{show('shorthandResultScreen',false);show('student',true);$('submitShorthand').disabled=false;shActiveTest=null};
 async function refreshStudentShResults(){try{const {data,error}=await sb.from('shorthand_submissions').select('correct_words,wrong_words,missing_words,extra_words,accuracy,created_at,dictation_tests(title)').eq('user_id',currentUser.id).order('created_at',{ascending:false});if(error)throw error;$('studentShResults').innerHTML=data.length?'<table><tr><th>Test</th><th>Correct</th><th>Wrong</th><th>Missing</th><th>Extra</th><th>Accuracy</th></tr>'+data.map(r=>'<tr><td>'+esc(r.dictation_tests?.title||'Shorthand Test')+'</td><td>'+r.correct_words+'</td><td>'+r.wrong_words+'</td><td>'+r.missing_words+'</td><td>'+r.extra_words+'</td><td>'+r.accuracy+'%</td></tr>').join('')+'</table>':'अभी कोई Shorthand Result नहीं है।'}catch(e){$('studentShResults').textContent='Shorthand results error: '+e.message}}
 async function refreshAdminShResults(){try{const {data,error}=await sb.from('shorthand_submissions').select('correct_words,wrong_words,missing_words,extra_words,accuracy,created_at,dictation_tests(title),profiles(full_name,student_id)').order('created_at',{ascending:false});if(error)throw error;$('adminShResults').innerHTML=data.length?'<table><tr><th>Student</th><th>Test</th><th>Correct</th><th>Wrong</th><th>Missing</th><th>Extra</th><th>Accuracy</th></tr>'+data.map(r=>'<tr><td>'+esc(r.profiles?.full_name||r.profiles?.student_id||'Student')+'</td><td>'+esc(r.dictation_tests?.title||'Shorthand Test')+'</td><td>'+r.correct_words+'</td><td>'+r.wrong_words+'</td><td>'+r.missing_words+'</td><td>'+r.extra_words+'</td><td>'+r.accuracy+'%</td></tr>').join('')+'</table>':'अभी कोई Shorthand Result नहीं है।'}catch(e){$('adminShResults').textContent='Admin shorthand results error: '+e.message}}

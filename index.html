@@ -302,17 +302,53 @@ const passageBox=$('sourcePassage');
 function renderTypingPassage(){
   const original=activeTest.passage;
   const typed=answerBox.value;
+  const refWords=[...original.matchAll(/\S+/g)];
+  const typedWords=[...typed.matchAll(/\S+/g)];
+  const status=refWords.map(()=> 'ty-pending');
+
+  let r=0;
+  let t=0;
+
+  while(r<refWords.length && t<typedWords.length){
+    const ref=refWords[r][0];
+    const val=typedWords[t][0];
+
+    if(val===ref){
+      status[r]='ty-correct';
+      r++;
+      t++;
+    }else if(t+1<typedWords.length &&
+             typedWords[t+1][0]===ref){
+      t++;
+    }else{
+      status[r]='ty-wrong';
+      r++;
+      t++;
+    }
+  }
+
   let html='';
+  let wordIndex=0;
 
   for(let i=0;i<original.length;i++){
-    const ch=original[i];
-    let cls='ty-pending';
-
-    if(i<typed.length){
-      cls=typed[i]===ch?'ty-correct':'ty-wrong';
+    while(
+      wordIndex<refWords.length &&
+      i>=refWords[wordIndex].index+refWords[wordIndex][0].length
+    ){
+      wordIndex++;
     }
 
-    html+='<span class="'+cls+'" data-pos="'+i+'">'+esc(ch)+'</span>';
+    let cls='ty-pending';
+
+    if(
+      wordIndex<refWords.length &&
+      i>=refWords[wordIndex].index &&
+      i<refWords[wordIndex].index+refWords[wordIndex][0].length
+    ){
+      cls=status[wordIndex];
+    }
+
+    html+='<span class="'+cls+'" data-pos="'+i+'">'+esc(original[i])+'</span>';
   }
 
   passageBox.innerHTML=html;
@@ -336,6 +372,7 @@ function renderTypingPassage(){
     passageBox.scrollTop=0;
   }
 }
+  
 
 answerBox.oninput=renderTypingPassage;
 renderTypingPassage();
